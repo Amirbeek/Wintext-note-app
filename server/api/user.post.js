@@ -41,9 +41,9 @@ export default defineEventHandler(async (event) => {
                salt: salt,
            }
        });
-       const token = jwt.sign({id: user.id},
-           ''
-           )
+       const token = jwt.sign({id: user.id}, process.env.JWT_SECRET_KEY)
+
+       setCookie(event, 'AppleNoteJWT', token)
 
        return { success: true, message: 'User created successfully' };
    }catch(err) {
