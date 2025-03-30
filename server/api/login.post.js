@@ -29,23 +29,25 @@ export default defineEventHandler(async (event) => {
                 message: 'Password is not minimum 8 characters, please change',
             });
         }
-        // Hashing Password
-        const salt = await bcrypt.genSalt()
-        const hashedPassword = await bcrypt.hash(body.password, salt)
 
-        // send to database
-        const user = await prisma.user.create({
-            data: {
+        const user = await prisma.user.findUnique({
+            where: {
                 email: body.email,
-                password: hashedPassword,
-                salt: salt,
             }
         });
+
+        // Hashing Password
+        const isValid = await bcrypt.compare(body.password, user.password)
+        console.log('IsValid', isValid)
+        if (!isValid) {
+            throw createError({
+                statusCode: 400,
+                message: 'Username or password is invalid.',
+            })
+        }
         const token = jwt.sign({id: user.id}, process.env.JWT_SECRET_KEY)
-
         setCookie(event, 'AppleNoteJWT', token)
-
-        return { success: true, message: 'User created successfully' };
+        return { success: true, message: 'Logged in successfully' };
     }catch(err) {
         if (err instanceof Error && "code" in err && err.code === 'P2002') {
             throw createError({

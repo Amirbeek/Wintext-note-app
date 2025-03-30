@@ -10,6 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@editorjs/editorjs": "^2.30.8",
     "@prisma/client": "^6.5.0",
     "@prisma/nuxt": "^0.3.0",
     "bcryptjs": "^3.0.2",
