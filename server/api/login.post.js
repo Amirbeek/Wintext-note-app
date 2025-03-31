@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
+
+import bcrypt from 'bcryptjs';
 import validator from 'validator';
 import jwt from "jsonwebtoken";
 
@@ -38,6 +39,7 @@ export default defineEventHandler(async (event) => {
 
         // Hashing Password
         const isValid = await bcrypt.compare(body.password, user.password)
+
         console.log('IsValid', isValid)
         if (!isValid) {
             throw createError({
@@ -46,6 +48,7 @@ export default defineEventHandler(async (event) => {
             })
         }
         const token = jwt.sign({id: user.id}, process.env.JWT_SECRET_KEY)
+
         setCookie(event, 'AppleNoteJWT', token)
         return { success: true, message: 'Logged in successfully' };
     }catch(err) {
