@@ -34,5 +34,11 @@ export default defineNuxtConfig({
     },
   },
 
-  modules: ['@prisma/nuxt','@vueuse/nuxt'],
+  modules: ['@prisma/nuxt', '@vueuse/nuxt', 'nuxt-tiptap-editor'],
+  tiptap: {
+    prefix: 'Tiptap',
+  },
+  plugins: [
+    {src: '~/plugins/toast.js',  mode: 'client' }
+  ]
 })

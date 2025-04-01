@@ -19,13 +19,13 @@
               }"
               @click="setNote(note)">
            <h3 class="text-sm font-bold text-[#F4F4F5] truncate">
-             {{note.text.substring(0,50)}}
+             {{stripHtml(note.text).substring(0,50)}}
            </h3>
            <div class="leading-none  text-[#d6d6d6] truncate">
              <span class="text-xs text-[#F4F4F5] mr-4">{{
                  new Date(note.updatedAt).toLocaleDateString()
                }}</span>
-             <span class="text-xs text-[#d6d6d6]  "> ...{{note.text.substring(50,70)}}</span>
+             <span class="text-xs text-[#d6d6d6]  "> ...{{stripHtml(note.text).substring(50,70)}}</span>
            </div>
          </div>
        </div>
@@ -44,7 +44,7 @@
               @click="setNote(note)"
           >
             <h3 class="text-sm font-bold text-[#F4F4F5] truncate">
-              {{note.text.substring(0,50)}}
+              {{stripHtml(note.text).substring(0,50)}}
             </h3>
             <div class="leading-none  text-[#d6d6d6] truncate">
              <span class="text-xs text-[#F4F4F5] mr-4">{{
@@ -53,7 +53,7 @@
                      ? 'Today'
                      : new Date(note.updatedAt).toLocaleDateString()
                }}</span>
-              <span class="text-xs text-[#d6d6d6]  "> ...{{note.text.substring(50,70)}}</span>
+              <span class="text-xs text-[#d6d6d6]  "> ...{{stripHtml(note.text).substring(50,70)}}</span>
             </div>
           </div>
         </div>
@@ -72,13 +72,13 @@
               @click="setNote(note)"
           >
             <h3 class="text-sm font-bold text-[#F4F4F5] truncate">
-              {{note.text.substring(0,50)}}
+              {{stripHtml(note.text).substring(0,50)}}
             </h3>
             <div class="leading-none  text-[#d6d6d6] truncate">
              <span class="text-xs text-[#F4F4F5] mr-4">{{
                  new Date(note.updatedAt).toLocaleDateString()
                }}</span>
-              <span class="text-xs text-[#d6d6d6]" v-if="note.text.length > 50"> ...{{note.text.substring(50,70)}}</span>
+              <span class="text-xs text-[#d6d6d6]" v-if="stripHtml(note.text).length > 50"> ...{{stripHtml(note.text).substring(50,70)}}</span>
             </div>
           </div>
         </div>
@@ -86,46 +86,41 @@
     </div>
     <!--  sidebar  -->
     <!--    node container-->
-    <div class="w-full flex flex-col">
+    <div class="w-full flex flex-col relative">
       <div class="flex justify-between w-full items-start p-8 ">
         <button class="text-xs items-center text-[#C2c2c5] font-bold inline-flex space-x-2 hover:text-white"
-        @click="createNewNote">
+           @click="createNewNote">
           <PencilIcon/>
           <span>Create Note</span>
         </button>
         <Button @click="deleteNote"><TrashIcon/></Button>
       </div>
-      <div class="max-w-[437px] mx-auto w-full flex-grow flex flex-col">
-        <p class="text-[#929292]">{{ new Date(selectedNote.updatedAt).toLocaleDateString() }}</p>
-        <textarea
-            ref="textarea"
-            v-model="updatedNote"
-            name="note"
-            id="note"
-            class="text-[#D4D4D4] my-4 font-playfair w-full bg-transparent focus:outline-none resize-none flex-grow scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
-            @input="
-            () => {
-              debouncedFn()
-              selectedNote.text = updatedNote
-            }
-          "
-        >
-        </textarea>
+      <div class="max-w-[820px] mx-auto w-full flex-grow flex flex-col ">
+        <RichTextEditor :selectedNote="selectedNote" @content-updated="handleContentUpdate" :updatedNote="updatedNote"/>
       </div>
       <button class="text-zinc-500 hover:text-white  text-sm font-bold absolute bottom-0 right-0 p-8" @click="logout">Logout</button>
+      <div class="bottom-0 left-0 p-8">
+        <AIcomponent
+            :noteText="selectedNote"
+        />
+      </div>
     </div>
   </div>
 </template>
 <script setup>
 import Swal from "sweetalert2";
-
 const updatedNote = ref('')
 import { ref, computed, onMounted } from 'vue';
 import { definePageMeta } from '#imports';
 import TrashIcon from "~/components/TrashIcon.vue";
 import PencilIcon from "~/components/PencilIcon.vue";
-
-// Define middleware for this page
+const notes = ref([]);
+const selectedNote = ref({});
+const stripHtml = (html) => {
+  const tempDiv = document.createElement('div')
+  tempDiv.innerHTML = html
+  return tempDiv.textContent || tempDiv.innerText || ''
+}
 definePageMeta({
   middleware: ['auth'],
 });
@@ -134,10 +129,12 @@ function setNote(note) {
   updatedNote.value = note.text
 }
 
-const notes = ref([]);
-const selectedNote = ref({});
+const handleContentUpdate = (newContent) => {
+  updatedNote.value = newContent;
+  selectedNote.value.text = updatedNote.value
+  updateNote()
+};
 
-// Computed property to filter today's notes
 const todaysNotes = computed(() => {
   return notes.value.filter(note => {
     const noteDate = new Date(note.updatedAt);
@@ -146,34 +143,19 @@ const todaysNotes = computed(() => {
 });
 const createNewNote = (async ()=>{
   try {
-    console.log(`/api/notes/${selectedNote.value.id}`)
     const newNote = await $fetch(`/api/notes`, {
       method: 'POST',
     })
-      notes.value.unshift(newNote)
+    notes.value.unshift(newNote)
     selectedNote.value = notes.value[0]
   } catch (err) {
     console.log(err)
   }
 })
-const debouncedFn = useDebounceFn(async ()=>{
-  console.log('updated ')
- await updateNote()
-})
-// Computed property to yesterday today's notes
-const yesterdayNotes = computed(() => {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  return notes.value.filter(note => {
-    const noteDate = new Date(note.updatedAt);
-    return noteDate.toDateString() === yesterday.toDateString();
-  });
-});
-console.log(`/api/notes/${selectedNote.value.id}`)
+
 
 async function updateNote() {
   try {
-    console.log(`/api/notes/${selectedNote.value.id}`)
     await $fetch(`/api/notes/${selectedNote.value.id}`, {
       method: 'PATCH',
       body: {
@@ -184,6 +166,16 @@ async function updateNote() {
     console.log(err)
   }
 }
+
+const yesterdayNotes = computed(() => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return notes.value.filter(note => {
+    const noteDate = new Date(note.updatedAt);
+    return noteDate.toDateString() === yesterday.toDateString();
+  });
+});
+
 
 async function deleteNote() {
   const { isConfirmed } = await Swal.fire({
@@ -202,10 +194,8 @@ async function deleteNote() {
     const index = notes.value.findIndex((note) => {
       return note.id === selectedNote.value.id
     })
-    console.log(index)
     notes.value.splice(index, 1)
     selectedNote.value = notes.value[0]
-
   }
 }
 const earlierNotes = computed(() => {
@@ -223,7 +213,7 @@ const logout = (async ()=>{
   navigateTo('/login')
 })
 onMounted(async () => {
-  notes.value = await $fetch('/api/notes')
+  notes.value = await $fetch('/api/notes');
   notes.value.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
 
   if (notes.value.length > 0) selectedNote.value = notes.value[0]
@@ -231,9 +221,7 @@ onMounted(async () => {
     await createNewNote()
     selectedNote.value = notes.value[0]
   }
-
   updatedNote.value = selectedNote.value.text
-
-  textarea.value.focus()
 })
+
 </script>

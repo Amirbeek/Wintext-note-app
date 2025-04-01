@@ -18,5 +18,14 @@
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: #666; /* Slightly lighter on hover */
+    background: #666;
 }
+
+:root {
+    --purple-light: #958DF1;
+    --black: #000;
+    --white: #fff;
+    --gray-3: #ccc;
+    --gray-2: #b3b3b3;
+}
+
