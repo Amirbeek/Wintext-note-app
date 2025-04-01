@@ -1,6 +1,7 @@
 <template>
 
-  <div v-if="editor" class="container">
+  <div v-if="editor"
+       class="container shadow-md shadow-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/50 rounded-lg transition-shadow duration-300 ease-in-out">
     <div class="flex justify-between w-full items-start p-8 ">
       <span class="text-[#929292]">{{ new Date(selectedNote.updatedAt).toLocaleDateString() }}</span>
       <div>
@@ -204,7 +205,7 @@ export default {
     buttonClass(type, options = {}) {
       const baseClasses = 'px-2 m-1 py-1 rounded-xl';
       const activeClasses = 'bg-[#FFAC00] text-white';
-      const inactiveClasses = 'bg-gray-200 text-gray-800';
+      const inactiveClasses = 'bg-gray-300 text-gray-800';
       const isActive = this.editor?.isActive(type, options) || false;
       return `${baseClasses} ${isActive ? activeClasses : inactiveClasses}`;
     },
@@ -313,7 +314,7 @@ export default {
   background-color: transparent;
   outline: none;
   width: 100%;
-  max-height: 490px;
+  max-height: 450px;
   overflow-y: auto;
   padding: 16px;
   box-sizing: border-box;

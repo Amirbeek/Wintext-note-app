@@ -3,33 +3,33 @@
 
     <!--  sidebar  -->
     <div class="bg-black w-[338px] p-8 flex flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
-     <div>
-       <Logo/>
-     </div>
-<!--      Today Main Container -->
-     <div class="flex-grow">
-       <p class="font-sm font-bold text-[#C2C2C5] mt-12 mb-4">Today</p>
-       <div class="ml-2 space-y-2">
-         <div
-             v-for="note in todaysNotes"
-             class="p-3 rounded-lg cursor-pointer"
-             :class="{
+      <div>
+        <Logo/>
+      </div>
+      <!--      Today Main Container -->
+      <div class="flex-grow">
+        <p class="font-sm font-bold text-[#C2C2C5] mt-12 mb-4">Today</p>
+        <div class="ml-2 space-y-2">
+          <div
+              v-for="note in todaysNotes"
+              class="p-3 rounded-lg cursor-pointer"
+              :class="{
                'bg-[#A1842C]': note.id === selectedNote.id,
               'hover:bg-[#A1842C]/50': note.id !== selectedNote.id,
               }"
               @click="setNote(note)">
-           <h3 class="text-sm font-bold text-[#F4F4F5] truncate">
-             {{stripHtml(note.text).substring(0,50)}}
-           </h3>
-           <div class="leading-none  text-[#d6d6d6] truncate">
+            <h3 class="text-sm font-bold text-[#F4F4F5] truncate">
+              {{stripHtml(note.text).substring(0,50)}}
+            </h3>
+            <div class="leading-none  text-[#d6d6d6] truncate">
              <span class="text-xs text-[#F4F4F5] mr-4">{{
                  new Date(note.updatedAt).toLocaleDateString()
                }}</span>
-             <span class="text-xs text-[#d6d6d6]  "> ...{{stripHtml(note.text).substring(50,70)}}</span>
-           </div>
-         </div>
-       </div>
-     </div>
+              <span class="text-xs text-[#d6d6d6]  "> ...{{stripHtml(note.text).substring(50,70)}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
       <!--      Yesterday Main Container -->
       <div>
         <p class="font-sm font-bold text-[#C2C2C5] mt-12 mb-4">Yesterday</p>
@@ -86,20 +86,20 @@
     </div>
     <!--  sidebar  -->
     <!--    node container-->
-    <div class="w-full flex flex-col relative">
+    <div class="w-full flex flex-col relative shadow-indigo-500">
       <div class="flex justify-between w-full items-start p-8 ">
         <button class="text-xs items-center text-[#C2c2c5] font-bold inline-flex space-x-2 hover:text-white"
-           @click="createNewNote">
+                @click="createNewNote">
           <PencilIcon/>
           <span>Create Note</span>
         </button>
         <Button @click="deleteNote"><TrashIcon/></Button>
       </div>
-      <div class="max-w-[820px] mx-auto w-full flex-grow flex flex-col ">
+      <div class="max-w-[820px] mx-auto  flex-grow flex flex-col ">
         <RichTextEditor :selectedNote="selectedNote" @content-updated="handleContentUpdate" :updatedNote="updatedNote"/>
       </div>
-      <button class="text-zinc-500 hover:text-white  text-sm font-bold absolute bottom-0 right-0 p-8" @click="logout">Logout</button>
-      <div class="bottom-0 left-0 p-8">
+      <button class="text-zinc-500 hover:text-white text-sm font-bold bottom-0 absolute right-0 p-8 transition-colors duration-200 ease-in-out" @click="logout">Logout</button>
+      <div class="bottom-0  absolute left-0 p-8">
         <AIcomponent
             :noteText="selectedNote"
         />
@@ -108,6 +108,9 @@
   </div>
 </template>
 <script setup>
+definePageMeta({
+  middleware: ['auth'],
+});
 import Swal from "sweetalert2";
 const updatedNote = ref('')
 import { ref, computed, onMounted } from 'vue';
@@ -121,9 +124,7 @@ const stripHtml = (html) => {
   tempDiv.innerHTML = html
   return tempDiv.textContent || tempDiv.innerText || ''
 }
-definePageMeta({
-  middleware: ['auth'],
-});
+
 function setNote(note) {
   selectedNote.value = note
   updatedNote.value = note.text

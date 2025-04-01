@@ -6,7 +6,7 @@
         viewBox="0 0 15 19"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        class="text-xs text-[#C2c2c5] font-bold hover:text-white"
+        class="text-xs text-[#C2c2c5] font-bold hover:text-white transition-colors duration-200 ease-in-out"
     >
       <path
           fill-rule="evenodd"

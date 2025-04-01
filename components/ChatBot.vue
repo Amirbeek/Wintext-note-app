@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, watchEffect } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { marked } from 'marked'
 
 interface Message {
@@ -7,28 +7,36 @@ interface Message {
   content: string
 }
 
-// Prop definition
 const props = defineProps({
   noteText: {
     type: String,
     required: false,
-    default: '' // Fallback to empty string if undefined
-  },
+    default: ''
+  }
 })
 
 const messages = ref<Message[]>([])
 const input = ref('')
 const loading = ref(false)
 const initialRequestSent = ref(false)
+const chatContainer = ref<HTMLElement | null>(null)
+const animatedChunks = ref<string[]>([]) // stores HTML chunks (text + code)
 
-// Function to ask the assistant (Llama API) with user input
+const sendMessage = async () => {
+  if (!input.value.trim()) return
+  const userText = input.value
+  input.value = ''
+  await askLlama(userText)
+}
+
 const askLlama = async (userText: string, hideUserMessage = false) => {
   loading.value = true
+  animatedChunks.value = []
 
   const chatHistory = [
     {
       role: 'system',
-      content: "You are Mindex, where user made mistake and explain you dont have to explain the text ,you are like teacher and tell what they need to add or what they need to fix"
+      content: "You are Mindex, where user made mistake and explain you dont have to explain the text, you are like teacher and tell what they need to add or what they need to fix"
     },
     ...messages.value,
     { role: 'user', content: userText }
@@ -50,51 +58,90 @@ const askLlama = async (userText: string, hideUserMessage = false) => {
     })
 
     const data = await response.json()
+    const fullContent = data.message.content
 
-    messages.value.push({
-      role: 'assistant',
-      content: data.message.content
-    })
+    // Split by triple backticks for code blocks
+    const parts = fullContent.split(/(```[\s\S]*?```)/g)
+    let i = 0
+
+    const typeChunk = async () => {
+      if (i >= parts.length) {
+        messages.value.push({ role: 'assistant', content: fullContent })
+        animatedChunks.value = []
+        loading.value = false
+        return
+      }
+
+      const part = parts[i]
+
+      if (part.startsWith("```")) {
+        // Full code block, show immediately
+        animatedChunks.value.push(marked(part))
+        i++
+        await nextTick()
+        chatContainer.value?.scrollTo({ top: chatContainer.value.scrollHeight })
+        typeChunk()
+      } else {
+        // Text part: animate character-by-character
+        let j = 0
+        let tempText = ''
+        const animateText = setInterval(() => {
+          if (j < part.length) {
+            tempText += part[j]
+            animatedChunks.value[animatedChunks.value.length - 1] =
+                marked(tempText)
+            j++
+            nextTick(() => {
+              chatContainer.value?.scrollTo({ top: chatContainer.value.scrollHeight })
+            })
+          } else {
+            clearInterval(animateText)
+            i++
+            typeChunk()
+          }
+        }, 15)
+
+        // Push empty string to begin new animation step
+        animatedChunks.value.push('')
+      }
+    }
+
+    typeChunk()
   } catch (err) {
     console.error(err)
     messages.value.push({
       role: 'assistant',
       content: "Sorry, something went wrong 😢"
     })
-  } finally {
     loading.value = false
   }
 }
 
-// Send message function
-const sendMessage = async () => {
-  if (!input.value.trim()) return
-  const userText = input.value
-  input.value = ''
-  await askLlama(userText)
-}
+// Scroll when messages update
+watch(messages, () => {
+  nextTick(() => {
+    chatContainer.value?.scrollTo({ top: chatContainer.value.scrollHeight })
+  })
+})
 
-// Initialize with a default message if noteText is undefined
 onMounted(() => {
   if (props.noteText && !initialRequestSent.value) {
     askLlama(`Explain: ${props.noteText}`, true)
-    initialRequestSent.value = true // Set flag to prevent repeated requests
-    console.log("OnMounted", props.noteText)
+    initialRequestSent.value = true
   }
 })
 
-// Watch for changes to noteText and update the messages accordingly
 watch(() => props.noteText, (newText) => {
   if (newText && newText !== props.noteText) {
     askLlama(`Explain: ${newText}`, true)
-    console.log('Explain', newText)
   }
 })
 </script>
 
 <template>
-  <div class="max-w-lg mx-auto border rounded-lg shadow h-[600px] flex flex-col bg-white">
-    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+  <div class="max-w-lg mx-auto border rounded-lg shadow h-[670px] flex flex-col bg-white">
+    <div ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4">
+      <!-- Past messages -->
       <div
           v-for="(msg, i) in messages"
           :key="i"
@@ -111,8 +158,18 @@ watch(() => props.noteText, (newText) => {
         ></div>
       </div>
 
-      <!-- 🟢 Typing animation -->
-      <div v-if="loading" class="flex justify-start">
+      <!-- Animated response -->
+      <div v-if="animatedChunks.length" class="text-left">
+        <div
+            v-for="(chunk, index) in animatedChunks"
+            :key="index"
+            class="inline-block px-4 py-2 rounded-xl max-w-[80%] markdown-body bg-gray-100 text-gray-800 mb-2"
+            v-html="chunk"
+        ></div>
+      </div>
+
+      <!-- Typing dots -->
+      <div v-if="loading && animatedChunks.length === 0" class="flex justify-start">
         <div class="bg-gray-100 text-gray-800 px-4 py-2 rounded-xl inline-block">
           <span class="typing-dots">
             <span>.</span><span>.</span><span>.</span>
@@ -128,16 +185,31 @@ watch(() => props.noteText, (newText) => {
           @keydown.enter="sendMessage"
           type="text"
           class="flex-1 border rounded-md px-3 py-2 outline-none w-1/3"
-          placeholder="Talk to Mindex 🎓"      />
+          placeholder="Talk to Mindex 🎓"
+      />
       <button
           @click="sendMessage"
           :disabled="loading"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+          class="bg-indigo-500 hover:bg-indigo-500/50 text-white px-4 py-2 rounded-md"
       >
         {{ loading ? '...' : 'Send' }}
       </button>
     </div>
+
   </div>
+  <!-- Quiz Icon CTA -->
+  <div
+      @click="showQuizModal = true"
+      class="max-w-lg mx-auto mt-2 px-6 text-indigo-800 hover:bg-indigo-50 transition-colors cursor-pointer rounded-md py-2 flex items-center justify-between group"
+  >
+  <span class="text-sm font-medium">
+    Start Learning Quiz
+    <span class="underline-offset-4 group-hover:underline">Generator</span>
+  </span>
+    <QuizIcon class="w-5 h-5 text-indigo-500 group-hover:scale-110 transition-transform" />
+  </div>
+
+
 </template>
 
 <style scoped>
@@ -146,7 +218,6 @@ watch(() => props.noteText, (newText) => {
   gap: 4px;
   font-weight: bold;
   font-size: 20px;
-  animation: blink 1.2s infinite;
 }
 
 .typing-dots span {
@@ -172,7 +243,6 @@ watch(() => props.noteText, (newText) => {
   }
 }
 
-/* Optional: add GitHub markdown styling for better readability */
 .markdown-body {
   line-height: 1.5;
 }
