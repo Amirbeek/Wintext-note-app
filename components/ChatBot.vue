@@ -8,6 +8,7 @@ const modalLoading = ref(false)
 const initialRequestSent = ref(false)
 const chatContainer = ref<HTMLElement | null>(null)
 const animatedChunks = ref<string[]>([])
+const showModal = ref(false)
 
 interface Message {
   role: 'user' | 'assistant'
@@ -158,6 +159,7 @@ const showQuizModal=()=>{
   if (props.noteText){
     console.log('started')
     generate_Quiz(props.noteText)
+    showModal.value = true
   }
 }
 onMounted(() => {
@@ -247,6 +249,30 @@ watch(() => props.noteText, (newText) => {
 
 
 <!--  Quiz Modal -->
+  <Transition name="fade">
+    <div
+        v-if="showModal"
+        class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+    >
+      <div class="bg-white w-full h-full max-w-3xl mx-auto p-6 rounded-lg relative shadow-xl overflow-y-auto">
+        <!-- Modal Title Bar -->
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold">Generated Quiz</h2>
+          <button @click="showModal = false" class="text-gray-600 hover:text-black text-2xl">×</button>
+        </div>
+
+        <!-- Modal Body (like #body slot) -->
+        <div>
+          <div v-if="modalLoading" class="text-gray-600">Generating quiz...</div>
+          <div v-else class="space-y-4">
+            <!-- Inject your quiz questions here once ready -->
+            <p class="text-sm text-gray-700">Quiz will appear here...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Transition>
+
 </template>
 
 <style scoped>
@@ -255,6 +281,12 @@ watch(() => props.noteText, (newText) => {
   gap: 4px;
   font-weight: bold;
   font-size: 20px;
+}
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 
 .typing-dots span {
