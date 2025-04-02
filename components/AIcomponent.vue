@@ -43,7 +43,6 @@ const props = defineProps({
 const isSlideoverOpen = ref(false)
 const noteText = ref('')
 
-// Watch and initialize noteText once the prop is available
 onMounted(() => {
   if (props.noteText && props.noteText.text) {
     noteText.value = props.noteText.text

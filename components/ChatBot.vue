@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { marked } from 'marked'
+const messages = ref<Message[]>([])
+const input = ref('')
+const loading = ref(false)
+const modalLoading = ref(false)
+const initialRequestSent = ref(false)
+const chatContainer = ref<HTMLElement | null>(null)
+const animatedChunks = ref<string[]>([])
 
 interface Message {
   role: 'user' | 'assistant'
@@ -14,13 +21,6 @@ const props = defineProps({
     default: ''
   }
 })
-
-const messages = ref<Message[]>([])
-const input = ref('')
-const loading = ref(false)
-const initialRequestSent = ref(false)
-const chatContainer = ref<HTMLElement | null>(null)
-const animatedChunks = ref<string[]>([]) // stores HTML chunks (text + code)
 
 const sendMessage = async () => {
   if (!input.value.trim()) return
@@ -82,7 +82,6 @@ const askLlama = async (userText: string, hideUserMessage = false) => {
         chatContainer.value?.scrollTo({ top: chatContainer.value.scrollHeight })
         typeChunk()
       } else {
-        // Text part: animate character-by-character
         let j = 0
         let tempText = ''
         const animateText = setInterval(() => {
@@ -101,7 +100,6 @@ const askLlama = async (userText: string, hideUserMessage = false) => {
           }
         }, 15)
 
-        // Push empty string to begin new animation step
         animatedChunks.value.push('')
       }
     }
@@ -117,13 +115,51 @@ const askLlama = async (userText: string, hideUserMessage = false) => {
   }
 }
 
-// Scroll when messages update
 watch(messages, () => {
   nextTick(() => {
     chatContainer.value?.scrollTo({ top: chatContainer.value.scrollHeight })
   })
 })
 
+const generate_Quiz = async (userText: string) => {
+  modalLoading.value =  true
+  const instruction = "Generate 10 multiple-choice quiz questions with 4 options each. Only one option should be correct. The questions should be strictly related to the topic, no extra content.";
+  const prompt = `${instruction} Topic: ${userText}. Return the result in JSON format with the following structure:
+  {
+    quizzes: [
+      {
+        question: "string",
+        options: ["string", "string", "string", "string"],
+        answer: "string"
+      }
+    ]
+  }`;
+
+  const response = await fetch('http://localhost:11434/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'llama3',
+      messages: [
+        { role: 'user', content: prompt }
+      ],
+      stream: false
+    })
+  });
+
+  const data = await response.json();
+  const message = data.message?.content;
+  console.log("Generated Quizzes:", message);
+  modalLoading.value =  false
+  return message;
+};
+
+const showQuizModal=()=>{
+  if (props.noteText){
+    console.log('started')
+    generate_Quiz(props.noteText)
+  }
+}
 onMounted(() => {
   if (props.noteText && !initialRequestSent.value) {
     askLlama(`Explain: ${props.noteText}`, true)
@@ -135,13 +171,13 @@ watch(() => props.noteText, (newText) => {
   if (newText && newText !== props.noteText) {
     askLlama(`Explain: ${newText}`, true)
   }
+
 })
 </script>
 
 <template>
   <div class="max-w-lg mx-auto border rounded-lg shadow h-[670px] flex flex-col bg-white">
     <div ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4">
-      <!-- Past messages -->
       <div
           v-for="(msg, i) in messages"
           :key="i"
@@ -199,7 +235,7 @@ watch(() => props.noteText, (newText) => {
   </div>
   <!-- Quiz Icon CTA -->
   <div
-      @click="showQuizModal = true"
+      @click="showQuizModal"
       class="max-w-lg mx-auto mt-2 px-6 text-indigo-800 hover:bg-indigo-50 transition-colors cursor-pointer rounded-md py-2 flex items-center justify-between group"
   >
   <span class="text-sm font-medium">
@@ -210,6 +246,7 @@ watch(() => props.noteText, (newText) => {
   </div>
 
 
+<!--  Quiz Modal -->
 </template>
 
 <style scoped>
