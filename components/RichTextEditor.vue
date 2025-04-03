@@ -1,214 +1,191 @@
 <template>
+  <div v-if="editor" class="w-full max-w-[780px] mx-auto shadow-md hover:shadow-lg hover:shadow-indigo-500/50 shadow-indigo-500/50 rounded-lg transition-shadow duration-300 ease-in-out shimmer-wrapper p-8 space-y-6">
+    <div class="flex justify-between w-full items-start p-6 pb-0 ">
+      <span class="text-sm text-zinc-400 italic">
+  {{ formattedRelativeTime }}
+</span>
 
-  <div v-if="editor"
-       class="container shadow-md shadow-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/50 rounded-lg transition-shadow duration-300 ease-in-out">
-    <div class="flex justify-between w-full items-start p-8 ">
-      <span class="text-[#929292]">{{ new Date(selectedNote.updatedAt).toLocaleDateString() }}</span>
-      <div>
-        <button
-            @click="editor.chain().focus().undo().run()"
-            :disabled="!editor.can().chain().focus().undo().run()">
-          <Undo/>
+
+      <div class="flex gap-2">
+        <button @click="editor.chain().focus().undo().run()" :disabled="!editor.can().chain().focus().undo().run()" class="text-black font-bold py-1 px-2 rounded">
+          <Undo />
         </button>
-        <button
-            @click="editor.chain().focus().redo().run()"
-            :disabled="!editor.can().chain().focus().redo().run()">
-          <Redo/>
+        <button @click="editor.chain().focus().redo().run()" :disabled="!editor.can().chain().focus().redo().run()" class="text-black font-bold py-1 px-2 rounded">
+          <Redo />
         </button>
       </div>
     </div>
     <div class="control-group">
-      <div class="button-group flex flex-wrap space-x-2">
-        <button
-            @click="editor.chain().focus().toggleBold().run()"
-            :disabled="!editor.can().chain().focus().toggleBold().run()"
-            :class="buttonClass('bold')">
-          Bold
+      <div class="button-group flex flex-wrap gap-2 p-4 space-x-1 pt-0">
+        <button @click="toggleBold" :disabled="!canToggleBold" :class="buttonClass(editor.isActive('bold'))" title="Bold">
+          <Bold class="w-5 h-5" />
         </button>
-        <button
-            @click="editor.chain().focus().toggleItalic().run()"
-            :disabled="!editor.can().chain().focus().toggleItalic().run()"
-            :class="buttonClass('italic')">
-          Italic
+        <button @click="toggleItalic" :disabled="!canToggleItalic" :class="buttonClass(editor.isActive('italic'))" title="Italic">
+          <Italic class="w-5 h-5" />
         </button>
-        <button
-            @click="editor.chain().focus().toggleStrike().run()"
-            :disabled="!editor.can().chain().focus().toggleStrike().run()"
-            :class="buttonClass('strike')">
-          Strike
+        <button @click="toggleStrike" :disabled="!canToggleStrike" :class="buttonClass(editor.isActive('strike'))" title="Strike">
+          <Strikethrough class="w-5 h-5" />
         </button>
-        <button
-            @click="editor.chain().focus().toggleCode().run()"
-            :disabled="!editor.can().chain().focus().toggleCode().run()"
-            :class="buttonClass('code')">
-          Code
+        <button @click="toggleCode" :disabled="!canToggleCode" :class="buttonClass(editor.isActive('code'))" title="Code">
+          <Code class="w-5 h-5" />
         </button>
-        <button
-            @click="editor.chain().focus().unsetAllMarks().run()"
-            :class="buttonClass('clearMarks')">
-          Clear marks
+        <button @click="clearMarks" class="bg-gray-300 px-2 py-1 rounded-full" title="Clear Marks">
+          <Trash class="w-5 h-5" />
         </button>
-        <button
-            @click="editor.chain().focus().clearNodes().run()"
-            :class="buttonClass('clearNodes')">
-          Clear nodes
+        <button @click="toggleHeading(1)" :class="buttonClass(editor.isActive('heading', { level: 1 }))" title="Heading 1">
+          <Heading1 class="w-5 h-5" />
         </button>
-        <button
-            @click="editor.chain().focus().setParagraph().run()"
-            :class="buttonClass('paragraph')">
-          Paragraph
+        <button @click="toggleHeading(2)" :class="buttonClass(editor.isActive('heading', { level: 2 }))" title="Heading 2">
+          <Heading2 class="w-5 h-5" />
         </button>
-        <button
-            @click="editor.chain().focus().toggleHeading({ level: 1 }).run()"
-            :class="buttonClass('heading', { level: 1 })">
-          H1
+        <button @click="toggleHeading(3)" :class="buttonClass(editor.isActive('heading', { level: 3 }))" title="Heading 3">
+          <Heading3 class="w-5 h-5" />
         </button>
-        <button
-            @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
-            :class="buttonClass('heading', { level: 2 })">
-          H2
+        <button @click="toggleBulletList" :class="buttonClass(editor.isActive('bulletList'))" title="Bullet List">
+          <List class="w-5 h-5" />
         </button>
-        <button
-            @click="editor.chain().focus().toggleHeading({ level: 3 }).run()"
-            :class="buttonClass('heading', { level: 3 })">
-          H3
+        <button @click="toggleOrderedList" :class="buttonClass(editor.isActive('orderedList'))" title="Ordered List">
+          <ListOrdered class="w-5 h-5" />
         </button>
-        <button
-            @click="editor.chain().focus().toggleHeading({ level: 4 }).run()"
-            :class="buttonClass('heading', { level: 4 })">
-          H4
+        <button @click="toggleBlockquote" :class="buttonClass(editor.isActive('blockquote'))" title="Blockquote">
+          <Quote class="w-5 h-5" />
         </button>
-        <button
-            @click="editor.chain().focus().toggleHeading({ level: 5 }).run()"
-            :class="buttonClass('heading', { level: 5 })">
-          H5
+        <button @click="setHorizontalRule" class="bg-gray-300 px-2 py-1 rounded-full" title="Horizontal Rule">
+          <Minus class="w-5 h-5" />
         </button>
-        <button
-            @click="editor.chain().focus().toggleHeading({ level: 6 }).run()"
-            :class="buttonClass('heading', { level: 6 })">
-          H6
+        <button @click="setHardBreak" class="bg-gray-300 px-2 py-1 rounded-full" title="Hard Break">
+          <CornerDownLeft class="w-5 h-5" />
         </button>
-        <button
-            @click="editor.chain().focus().toggleBulletList().run()"
-            :class="buttonClass('bulletList')">
-          Bullet list
-        </button>
-        <button
-            @click="editor.chain().focus().toggleOrderedList().run()"
-            :class="buttonClass('orderedList')">
-          Ordered list
-        </button>
-        <button
-            @click="editor.chain().focus().toggleCodeBlock().run()"
-            :class="buttonClass('codeBlock')">
-          Code block
-        </button>
-        <button
-            @click="editor.chain().focus().toggleBlockquote().run()"
-            :class="buttonClass('blockquote')">
-          Blockquote
-        </button>
-        <button
-            @click="editor.chain().focus().setHorizontalRule().run()"
-            :class="buttonClass('horizontalRule')">
-          Horizontal rule
-        </button>
-        <button
-            @click="editor.chain().focus().setHardBreak().run()"
-            :class="buttonClass('hardBreak')">
-          Hard break
-        </button>
-
-        <button
-            @click="editor.chain().focus().setColor('#958DF1').run()"
-            :class="buttonClass('textStyle', { color: '#958DF1' })">
-          Purple
+        <button @click="setPurpleColor" :class="buttonClass(editor.isActive('textStyle', { color: '#958DF1' }))" title="Purple">
+          <Paintbrush class="w-5 h-5" />
         </button>
       </div>
     </div>
     <div class="editor-container text-[#D4D4D4] my-4 font-playfair w-full bg-transparent focus:outline-none">
       <editor-content :editor="editor" />
     </div>
-
   </div>
 </template>
 
-
 <script>
-import { Color } from '@tiptap/extension-color';
-import ListItem from '@tiptap/extension-list-item';
-import TextStyle from '@tiptap/extension-text-style';
-import StarterKit from '@tiptap/starter-kit';
-import { Editor, EditorContent } from '@tiptap/vue-3';
-import { watch} from 'vue';
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+dayjs.extend(relativeTime)
+
+import { Editor, EditorContent } from '@tiptap/vue-3'
+import StarterKit from '@tiptap/starter-kit'
+import Heading from '@tiptap/extension-heading'
+import BulletList from '@tiptap/extension-bullet-list'
+import OrderedList from '@tiptap/extension-ordered-list'
+import Blockquote from '@tiptap/extension-blockquote'
+import HorizontalRule from '@tiptap/extension-horizontal-rule'
+import HardBreak from '@tiptap/extension-hard-break'
+import Color from '@tiptap/extension-color'
+import TextStyle from '@tiptap/extension-text-style'
+import ListItem from '@tiptap/extension-list-item'
+import { watch } from 'vue'
+import Undo from '@/components/Undo.vue'
+import Redo from '@/components/Redo.vue'
+
+import {
+  Bold, Italic, Strikethrough, Code, Trash,
+  Heading1, Heading2, Heading3, List, ListOrdered,
+  Quote, Minus, CornerDownLeft, Paintbrush,
+} from 'lucide-vue-next'
 
 export default {
   components: {
     EditorContent,
+    Undo,
+    Redo,
+    Bold,
+    Italic,
+    Strikethrough,
+    Code,
+    Trash,
+    Heading1,
+    Heading2,
+    Heading3,
+    List,
+    ListOrdered,
+    Quote,
+    Minus,
+    CornerDownLeft,
+    Paintbrush
   },
   props: {
-    selectedNote: {
-      type: Object,
-      required: true,
-    },
-    updatedNote: {
-      type: Object,
-      required: true,
-    },
-    content: {
-      type: String,
-      required: true,
-    },
-    myDebounce: {
-      type: Function,
-      default: () => (fn) => setTimeout(fn, 0)
-    }
+    selectedNote: Object,
+    updatedNote: Object,
+    content: String,
+    myDebounce: { type: Function, default: () => (fn) => setTimeout(fn, 0) }
   },
   data() {
-    return {
-      editor: null,
-    }
+    return { editor: null }
   },
   mounted() {
-    this.initializeEditor();
+    this.initializeEditor()
     watch(() => this.selectedNote, (newVal, oldVal) => {
       if (this.editor && newVal && newVal.text !== (oldVal ? oldVal.text : '')) {
-        this.editor.commands.setContent(newVal.text || '<p></p>');
+        this.editor.commands.setContent(newVal.text || '<p></p>')
       }
-    }, { deep: true });
+    }, { deep: true })
   },
   beforeUnmount() {
-    if (this.editor) {
-      this.editor.destroy();
-      this.editor = null;
-    }
+    this.editor?.destroy()
   },
   methods: {
     initializeEditor() {
       this.editor = new Editor({
-        extensions: [StarterKit, Color.configure({ types: [TextStyle.name, ListItem.name] }), TextStyle],
+        extensions: [
+          StarterKit.configure({
+            heading: false, bulletList: false, orderedList: false,
+            blockquote: false, horizontalRule: false, hardBreak: false,
+          }),
+          Heading.configure({ levels: [1, 2, 3] }),
+          BulletList, OrderedList, ListItem, Blockquote,
+          HorizontalRule, HardBreak, TextStyle,
+          Color.configure({ types: ['textStyle'] }),
+        ],
         content: this.selectedNote.text || '<p></p>',
         onUpdate: ({ editor }) => {
-          const htmlContent = editor.getHTML();
-          this.$emit('content-updated', htmlContent);
+          this.$emit('content-updated', editor.getHTML())
         },
-      });
+      })
     },
-    updateContent() {
-      if (this.editor) {
-        const htmlContent = this.editor.getHTML();
-        this.$emit('content-updated', htmlContent);
-      } else {
-        console.log('Error: Editor instance is not available.');
-      }
+    toggleBold() { this.editor.chain().focus().toggleBold().run() },
+    canToggleBold() { return this.editor.can().chain().focus().toggleBold().run() },
+    toggleItalic() { this.editor.chain().focus().toggleItalic().run() },
+    canToggleItalic() { return this.editor.can().chain().focus().toggleItalic().run() },
+    toggleStrike() { this.editor.chain().focus().toggleStrike().run() },
+    canToggleStrike() { return this.editor.can().chain().focus().toggleStrike().run() },
+    toggleCode() { this.editor.chain().focus().toggleCode().run() },
+    canToggleCode() { return this.editor.can().chain().focus().toggleCode().run() },
+    clearMarks() { this.editor.chain().focus().unsetAllMarks().run() },
+    toggleHeading(level) { this.editor.chain().focus().toggleHeading({ level }).run() },
+    toggleBulletList() { this.editor.chain().focus().toggleBulletList().run() },
+    toggleOrderedList() { this.editor.chain().focus().toggleOrderedList().run() },
+    toggleBlockquote() { this.editor.chain().focus().toggleBlockquote().run() },
+    setHorizontalRule() { this.editor.chain().focus().setHorizontalRule().run() },
+    setHardBreak() { this.editor.chain().focus().setHardBreak().run() },
+    setPurpleColor() { this.editor.chain().focus().setColor('#958DF1').run() },
+    buttonClass(isActive) {
+      const base = 'px-2 py-2 rounded-full'
+      const active = 'bg-[#FFAC00] text-white'
+      const inactive = 'bg-gray-300 text-gray-800'
+      return `${base} ${isActive ? active : inactive}`
     },
-    buttonClass(type, options = {}) {
-      const baseClasses = 'px-2 m-1 py-1 rounded-xl';
-      const activeClasses = 'bg-[#FFAC00] text-white';
-      const inactiveClasses = 'bg-gray-300 text-gray-800';
-      const isActive = this.editor?.isActive(type, options) || false;
-      return `${baseClasses} ${isActive ? activeClasses : inactiveClasses}`;
-    },
+
+  },
+  computed: {
+    formattedRelativeTime() {
+      const updatedAt = this.selectedNote?.updatedAt
+      if (!updatedAt) return ''
+
+      const date = dayjs(updatedAt).format('MMM D, YYYY')
+      const relative = dayjs(updatedAt).fromNow()
+
+      return `${date} • ${relative}`
+    }
   },
 }
 </script>
@@ -224,7 +201,6 @@ export default {
     margin-top: 0;
   }
 
-  /* List styles */
   ul,
   ol {
     padding: 0 1rem;
@@ -236,7 +212,6 @@ export default {
     }
   }
 
-  /* Heading styles */
   h1,
   h2,
   h3,
@@ -302,6 +277,15 @@ export default {
     margin: 1.5rem 0;
     padding-left: 1rem;
   }
+  .ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+  }
+
+  .ol {
+    list-style-type: decimal;
+    padding-left: 1.5rem;
+  }
 
   hr {
     border: none;
@@ -314,7 +298,8 @@ export default {
   background-color: transparent;
   outline: none;
   width: 100%;
-  max-height: 450px;
+  min-height: 200px;
+  max-height: 400px;
   overflow-y: auto;
   padding: 16px;
   box-sizing: border-box;

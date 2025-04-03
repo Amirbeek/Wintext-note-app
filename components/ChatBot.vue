@@ -17,7 +17,7 @@ import { jsonrepair } from 'jsonrepair'
 
 const currentQuiz = computed(() => quizzes.value[currentIndex.value])
 const isLastQuestion = computed(() => currentIndex.value === quizzes.value.length - 1)
-const quizzes = ref<{ question: string, options: string[], answer: string,shortExplanation: string }[]>([])
+const quizzes = ref<{ question: string, options: string[], answer: number,shortExplanation: string }[]>([])
 
 interface Message {
   role: 'user' | 'assistant'
@@ -198,26 +198,31 @@ const generate_Quiz = async (userText: string) => {
   modalLoading.value = true
   quizzes.value = []
 
-  const instruction = `
-    Generate 10 multiple-choice quiz questions about the given topic.
+  const instruction = `Your job is to return exactly 10 multiple-choice quiz questions based on the given topic.
+  Each question must include:
+  - A "question" string.
+  - An "options" array of exactly 4 strings.
+  - An "answer"  a number (0, 1, 2, or 3) that matches the correct option's index.
+  - A "shortExplanation" (1–2 concise sentences only).
 
-    Each question must have:
-    - exactly 4 options
-    - one correct answer
-    - a shortExplanation field that briefly explains why the answer is correct (1–2 sentences only, no extra fluff)
+  ⚠️ Very important:
+  - Do NOT use keys like "a", "b", etc.
+  - "answer" must be a copy-paste match of one of the options.
+  - Return valid JSON only. Do NOT include markdown or code blocks.
+  - Do NOT add extra text before or after the JSON.
 
-    Return ONLY valid JSON in this format:
-    {
-      "quizzes": [
-        {
-          "question": "string",
-          "options": ["string", "string", "string", "string"],
-          "answer": "string",
-          "shortExplanation": "string"
-        }
-      ]
-    }
-  `.trim()
+  Format:
+  {
+    "quizzes": [
+      {
+        "question": "string",
+        "options": ["string", "string", "string", "string"],
+        "answer": "Integer",
+        "shortExplanation": "string"
+      }
+    ]
+  }
+`.trim()
 
   const prompt = `${instruction} Topic: ${userText}`
 
@@ -329,11 +334,11 @@ watch(() => props.noteText, (newText) => {
               </h3>
 
               <ul class="space-y-3">
-                <li v-for="option in currentQuiz.options" :key="option" @click="selectOption(option)"
+                <li v-for="(option, index) in currentQuiz.options" :key="option" @click="selectOption(option)"
                     class="border px-4 py-2 rounded cursor-pointer transition-all transform hover:scale-[1.02]"
                     :class="[
-                    showFeedback && option === currentQuiz.answer ? 'bg-green-100 border-green-500' : '',
-                    showFeedback && selectedOption === option && option !== currentQuiz.answer ? 'bg-red-100 border-red-500' : '',
+                    showFeedback && index === currentQuiz.answer ? 'bg-green-100 border-green-500' : '',
+                    showFeedback && selectedOption === option && index !== currentQuiz.answer ? 'bg-red-100 border-red-500' : '',
                     !showFeedback ? 'hover:bg-indigo-50' : 'opacity-70'
                   ]">
                   {{ option }}
@@ -343,8 +348,8 @@ watch(() => props.noteText, (newText) => {
               <transition name="fade">
                 <div v-if="showFeedback" class="mt-4 space-y-2 animate-fade-in">
                   <div class="text-sm font-medium"
-                       :class="selectedOption === currentQuiz.answer ? 'text-green-600' : 'text-red-600'">
-                    {{ selectedOption === currentQuiz.answer ? '✅ Correct!' : '❌ Incorrect!' }}
+                       :class="currentQuiz.options.indexOf(selectedOption) === currentQuiz.answer ? 'text-green-600' : 'text-red-600'">
+                    {{ currentQuiz.options.indexOf(selectedOption) === currentQuiz.answer ? '✅ Correct!' : '❌ Incorrect!' }}
                   </div>
                   <p class="text-sm text-gray-600 italic">💡 {{ currentQuiz.shortExplanation }}</p>
                 </div>

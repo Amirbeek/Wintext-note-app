@@ -9,6 +9,7 @@
       <!--      Today Main Container -->
       <div class="flex-grow">
         <p class="font-sm font-bold text-[#C2C2C5] mt-12 mb-4">Today</p>
+        <NoteSkeleton v-if="loadingNotesSidebar" v-for="i in 3" :key="'today'+i" />
         <div class="ml-2 space-y-2">
           <div
               v-for="note in todaysNotes"
@@ -23,7 +24,7 @@
             </h3>
             <div class="leading-none  text-[#d6d6d6] truncate">
              <span class="text-xs text-[#F4F4F5] mr-4">{{
-                 new Date(note.updatedAt).toLocaleDateString()
+                  formatRelative(note.updatedAt)
                }}</span>
               <span class="text-xs text-[#d6d6d6]  "> ...{{stripHtml(note.text).substring(50,70)}}</span>
             </div>
@@ -33,6 +34,7 @@
       <!--      Yesterday Main Container -->
       <div>
         <p class="font-sm font-bold text-[#C2C2C5] mt-12 mb-4">Yesterday</p>
+        <NoteSkeleton v-if="loadingNotesSidebar" v-for="i in 3" :key="'today'+i" />
         <div class="ml-2 space-y-2">
           <div
               v-for="note in yesterdayNotes"
@@ -47,12 +49,9 @@
               {{stripHtml(note.text).substring(0,50)}}
             </h3>
             <div class="leading-none  text-[#d6d6d6] truncate">
-             <span class="text-xs text-[#F4F4F5] mr-4">{{
-                 new Date(note.updatedAt).toDateString() ===
-                 new Date().toDateString()
-                     ? 'Today'
-                     : new Date(note.updatedAt).toLocaleDateString()
-               }}</span>
+            <span class="text-xs text-[#F4F4F5] mr-4">
+              {{ formatRelative(note.updatedAt) }}
+            </span>
               <span class="text-xs text-[#d6d6d6]  "> ...{{stripHtml(note.text).substring(50,70)}}</span>
             </div>
           </div>
@@ -61,6 +60,7 @@
       <!--      Earlier Main Container -->
       <div>
         <p class="font-sm font-bold text-[#C2C2C5] mt-12 mb-4">Earlier</p>
+        <NoteSkeleton v-if="loadingNotesSidebar" v-for="i in 3" :key="'today'+i" />
         <div class="ml-2 space-y-2">
           <div
               v-for="note in earlierNotes"
@@ -75,9 +75,9 @@
               {{stripHtml(note.text).substring(0,50)}}
             </h3>
             <div class="leading-none  text-[#d6d6d6] truncate">
-             <span class="text-xs text-[#F4F4F5] mr-4">{{
-                 new Date(note.updatedAt).toLocaleDateString()
-               }}</span>
+             <span class="text-xs text-[#F4F4F5] mr-4">
+                {{ formatRelative(note.updatedAt) }}
+              </span>
               <span class="text-xs text-[#d6d6d6]" v-if="stripHtml(note.text).length > 50"> ...{{stripHtml(note.text).substring(50,70)}}</span>
             </div>
           </div>
@@ -95,9 +95,16 @@
         </button>
         <Button @click="deleteNote"><TrashIcon/></Button>
       </div>
-      <div class="max-w-[820px] mx-auto  flex-grow flex flex-col ">
-        <RichTextEditor :selectedNote="selectedNote" @content-updated="handleContentUpdate" :updatedNote="updatedNote"/>
+      <div class="max-w-[820px] mx-auto flex-grow flex flex-col">
+        <NoteEditorSkeleton v-if="loadingEditor" />
+        <RichTextEditor
+            v-else
+            :selectedNote="selectedNote"
+            @content-updated="handleContentUpdate"
+            :updatedNote="updatedNote"
+        />
       </div>
+
       <button class="text-zinc-500 hover:text-white text-sm font-bold bottom-0 absolute right-0 p-8 transition-colors duration-200 ease-in-out" @click="logout">Logout</button>
       <div class="bottom-0  absolute left-0 p-8">
         <AIcomponent
@@ -108,6 +115,10 @@
   </div>
 </template>
 <script setup>
+const loadingNotesSidebar = ref(true)
+const loadingEditor = ref(true)
+
+
 definePageMeta({
   middleware: ['auth'],
 });
@@ -117,6 +128,15 @@ import { ref, computed, onMounted } from 'vue';
 import { definePageMeta } from '#imports';
 import TrashIcon from "~/components/TrashIcon.vue";
 import PencilIcon from "~/components/PencilIcon.vue";
+import NoteEditorSkeleton from "~/components/NoteEditorSkeleton.vue";
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+dayjs.extend(relativeTime)
+
+const formatRelative = (date) => dayjs(date).fromNow()
+
+
+
 const notes = ref([]);
 const selectedNote = ref({});
 const stripHtml = (html) => {
@@ -214,6 +234,9 @@ const logout = (async ()=>{
   navigateTo('/login')
 })
 onMounted(async () => {
+  loadingNotesSidebar.value = true
+  loadingEditor.value = true
+  await new Promise(resolve => setTimeout(resolve, 1000))
   notes.value = await $fetch('/api/notes');
   notes.value.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
 
@@ -223,6 +246,16 @@ onMounted(async () => {
     selectedNote.value = notes.value[0]
   }
   updatedNote.value = selectedNote.value.text
+  loadingNotesSidebar.value = false
+
+  // give Vue a tick to show skeleton
+  await nextTick()
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      loadingEditor.value = false
+    }, 300)
+  })
+
 })
 
 </script>
