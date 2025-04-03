@@ -24,6 +24,7 @@
     "@vueuse/nuxt": "^13.0.0",
     "bcryptjs": "^3.0.2",
     "cheerio": "^1.0.0",
+    "jsonrepair": "^3.12.0",
     "jsonwebtoken": "^9.0.2",
     "lottie-web": "^5.12.2",
     "marked": "^15.0.7",

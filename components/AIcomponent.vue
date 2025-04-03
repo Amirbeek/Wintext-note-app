@@ -22,7 +22,7 @@
           </button>
 
           <h2 class="text-xl font-bold mb-4">Education Assistant</h2>
-          <ChatBot :noteText="stripHtml(noteText)"  />
+          <ChatBot  :noteText="stripHtml(noteText)"  />
         </div>
       </div>
     </transition>
