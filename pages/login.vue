@@ -46,8 +46,11 @@
 
 
     <!--  sidebar  -->
-    <div>
-
+    <div class="flex h-screen justify-center items-center bg-black w-full">
+      <!-- Parent div centered in the middle -->
+      <div class="w-[500px]">
+        <AnimatedLorem />
+      </div>
     </div>
     <!--    node introduction-->
   </div>
